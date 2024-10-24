@@ -90,6 +90,19 @@ TVG_API Tvg_Result tvg_swcanvas_set_target(Tvg_Canvas* canvas, uint32_t* buffer,
 }
 
 
+TVG_API Tvg_Canvas* tvg_glcanvas_create()
+{
+    return (Tvg_Canvas*) GlCanvas::gen().release();
+}
+
+
+TVG_API Tvg_Result tvg_glcanvas_set_target(Tvg_Canvas* canvas, int32_t id, uint32_t w, uint32_t h)
+{
+    if (!canvas) return TVG_RESULT_INVALID_ARGUMENT;
+    return (Tvg_Result) reinterpret_cast<GlCanvas*>(canvas)->target(id, w, h);
+}
+
+
 TVG_API Tvg_Result tvg_canvas_push(Tvg_Canvas* canvas, Tvg_Paint* paint)
 {
     if (!canvas || !paint) return TVG_RESULT_INVALID_ARGUMENT;

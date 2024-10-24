@@ -337,7 +337,7 @@ typedef struct
 *
 * \param[in] engine_method The engine types to initialize. This is relative to the Canvas types, in which it will be used. For multiple backends bitwise operation is allowed.
 *   - TVG_ENGINE_SW: CPU rasterizer
-*   - TVG_ENGINE_GL: OpenGL rasterizer (not supported yet)
+*   - TVG_ENGINE_GL: OpenGL rasterizer
 * \param[in] threads The number of additional threads used to perform rendering. Zero indicates only the main thread is to be used.
 *
 * \return Tvg_Result enumeration.
@@ -364,7 +364,7 @@ TVG_API Tvg_Result tvg_engine_init(Tvg_Engine engine_method, unsigned threads);
 *
 * \param engine_method The engine types to terminate. This is relative to the Canvas types, in which it will be used. For multiple backends bitwise operation is allowed
 *   - TVG_ENGINE_SW: CPU rasterizer
-*   - TVG_ENGINE_GL: OpenGL rasterizer (not supported yet)
+*   - TVG_ENGINE_GL: OpenGL rasterizer
 *
 * \return Tvg_Result enumeration.
 * \retval TVG_RESULT_INSUFFICIENT_CONDITION Nothing to be terminated.
@@ -487,6 +487,7 @@ TVG_API Tvg_Canvas* tvg_swcanvas_create(void);
 * \retval TVG_RESULT_INSUFFICIENT_CONDITION if the canvas is performing rendering. Please ensure the canvas is synced.
 * \retval TVG_RESULT_NOT_SUPPORTED The software engine is not supported.
 *
+* \warning @p canvas must be a Tvg_Canvas created by tvg_swcanvas_create().
 * \warning Do not access @p buffer during tvg_canvas_draw() - tvg_canvas_sync(). It should not be accessed while the engine is writing on it.
 *
 * \see Tvg_Colorspace
@@ -515,11 +516,72 @@ TVG_API Tvg_Result tvg_swcanvas_set_target(Tvg_Canvas* canvas, uint32_t* buffer,
 * \note When @c policy is set as @c TVG_MEMPOOL_POLICY_INDIVIDUAL, the current instance of canvas uses its own individual
 *       memory data, which is not shared with others. This is necessary when the canvas is accessed on a worker-thread.
 *
+* \warning @p canvas must be a Tvg_Canvas created by tvg_swcanvas_create().
 * \warning It's not allowed after pushing any paints.
 */
 TVG_API Tvg_Result tvg_swcanvas_set_mempool(Tvg_Canvas* canvas, Tvg_Mempool_Policy policy);
 
 /** \} */   // end defgroup ThorVGCapi_SwCanvas
+
+
+/**
+* \defgroup ThorVGCapi_GlCanvas GlCanvas
+* \ingroup ThorVGCapi_Canvas
+*
+* \brief A module for rendering the graphical elements using the OpenGL engine.
+*
+* \{
+*/
+
+/************************************************************************/
+/* GlCanvas API                                                         */
+/************************************************************************/
+
+/*!
+* \brief Creates a Canvas object.
+*
+* \code
+* Tvg_Canvas *canvas = NULL;
+*
+* tvg_engine_init(TVG_ENGINE_GL, 4);
+* canvas = tvg_glcanvas_create();
+*
+* //opengl setup logic
+*
+* tvg_swcanvas_set_target(0, 100, 100);
+*
+* //set up paints and add them into the canvas before drawing it
+*
+* tvg_canvas_destroy(canvas);
+* tvg_engine_term(TVG_ENGINE_GL);
+* \endcode
+*
+* \return A new Tvg_Canvas object.
+*/
+TVG_API Tvg_Canvas* tvg_glcanvas_create(void);
+
+
+/*!
+* \brief Sets the drawing target for rasterization.
+* 
+* This function specifies the drawing target where the rasterization will occur.
+* It can target a specific framebuffer object (FBO) or the main surface.
+*
+* \param[in] canvas The Tvg_Canvas object.
+* \param[in] id The GL target ID, usually indicating the FBO ID. A value of @c 0 specifies the main surface.
+* \param[in] w The width of the raster image.
+* \param[in] h The height of the raster image.
+*
+* \return Tvg_Result enumeration.
+* \retval TVG_RESULT_INVALID_ARGUMENTS An invalid canvas passed.
+* \retval TVG_RESULT_INSUFFICIENT_CONDITION if the canvas is performing rendering. Please ensure the canvas is synced.
+* \retval TVG_RESULT_NOT_SUPPORTED The software engine is not supported.
+*
+* \warning @p canvas must be a Tvg_Canvas created by tvg_glcanvas_create().
+*/
+TVG_API Tvg_Result tvg_glcanvas_set_target(Tvg_Canvas* canvas, int32_t id, uint32_t w, uint32_t h);
+
+/** \} */   // end defgroup ThorVGCapi_GlCanvas
 
 
 /************************************************************************/

@@ -296,17 +296,46 @@ float progress(uint32_t elapsed, float durationInSec)
 
 int main(int argc, char **argv)
 {
-    tvg_engine_init(Tvg_Engine(TVG_ENGINE_SW), 0);
+    Tvg_Engine engine = TVG_ENGINE_SW;
+    
+    if (argc > 1) {
+        if (!strcmp(argv[1], "gl")) {
+            engine = TVG_ENGINE_GL;
+        }
+    }
+
+    tvg_engine_init(Tvg_Engine(engine), 0);
 
     SDL_Init(SDL_INIT_VIDEO);
 
-    SDL_Window* window = SDL_CreateWindow("ThorVG Example (Software)", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
-    SDL_Surface* surface = SDL_GetWindowSurface(window);
+    SDL_Window* window = nullptr;
+    SDL_Surface* surface = nullptr;
+    SDL_GLContext context = nullptr;
 
     //create the canvas
-    canvas = tvg_swcanvas_create();
-    tvg_swcanvas_set_target(canvas, (uint32_t*)surface->pixels, surface->w, surface->pitch / 4, surface->h, TVG_COLORSPACE_ARGB8888);
-    tvg_swcanvas_set_mempool(canvas, TVG_MEMPOOL_POLICY_DEFAULT);
+    if (engine == TVG_ENGINE_SW) {
+        window = SDL_CreateWindow("ThorVG Example (Software)", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
+        surface = SDL_GetWindowSurface(window);
+        canvas = tvg_swcanvas_create();
+        tvg_swcanvas_set_target(canvas, (uint32_t*)surface->pixels, surface->w, surface->pitch / 4, surface->h, TVG_COLORSPACE_ARGB8888);
+        tvg_swcanvas_set_mempool(canvas, TVG_MEMPOOL_POLICY_DEFAULT);
+    } else if (engine == TVG_ENGINE_GL) {
+#ifdef THORVG_GL_TARGET_GLES
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#else
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+#endif
+
+        window = SDL_CreateWindow("ThorVG Example (GL)", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+        context = SDL_GL_CreateContext(window);
+
+        canvas = tvg_glcanvas_create();
+        tvg_glcanvas_set_target(canvas, 0, WIDTH, HEIGHT);
+    }
 
     contents();
 
@@ -348,7 +377,11 @@ int main(int argc, char **argv)
         tvg_canvas_draw(canvas);
         tvg_canvas_sync(canvas);
 
-        SDL_UpdateWindowSurface(window);
+        if (engine == TVG_ENGINE_SW) {
+            SDL_UpdateWindowSurface(window);
+        } else if (engine == TVG_ENGINE_GL) {
+            SDL_GL_SwapWindow(window);
+        }
 
         auto ctime = SDL_GetTicks();
         elapsed += (ctime - ptime);
@@ -359,7 +392,7 @@ int main(int argc, char **argv)
 
     SDL_Quit();
 
-    tvg_engine_term(Tvg_Engine(TVG_ENGINE_SW));
+    tvg_engine_term(Tvg_Engine(engine));
     
     return 0;
 }
